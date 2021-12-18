@@ -4,6 +4,7 @@ from kivy.uix.screenmanager import ScreenManager
 from kivy.core.window import Window
 from kivymd.app import MDApp
 from kivymd.uix.dialog import MDDialog
+from kivymd.uix.label import MDLabel
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.button import MDFlatButton, MDFillRoundFlatButton
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -58,6 +59,7 @@ class LobbyPage(MDScreen):
     def on_enter(self):
         self.host_name = self.manager.get_screen("HostPage").ids.host_name.text
         self.ids.lobby_name.text = self.host_name + "'s Lobby"
+        # self.host()
 
     def broadcast(self):
         global STOP
@@ -110,11 +112,33 @@ class LobbyPage(MDScreen):
                 msg = conn.recv(msg_length).decode(FORMAT)
                 if msg == DISCONNECT:
                     PLAYERS.remove(next(x for x in PLAYERS if x.addr == addr))
+                    self.ids.players_connected.remove_widget(label)
+                    del self.ids[player.username]
                     break
                 print("<", addr, ">", msg)
                 player.username = msg
+                label = MDLabel(text=player.username, halign="center")
+                self.ids[player.username] = label
+                self.ids.players_connected.add_widget(label)
                 PLAYERS.append(player)
         conn.close()
+
+    def assign_roles(self):
+        global PLAYERS, ROLES
+        no_of_players = len(PLAYERS)
+        if no_of_players < 3:
+            toast("Cannot play with less than 3 Players")
+            return
+        roles = ROLES + ["Citizen"]*(len(PLAYERS)-1)
+        self.role = random.choice(roles)
+        roles.remove(self.role)
+        random.shuffle(PLAYERS)
+        for player, role in zip(PLAYERS, roles):
+            role = role.encode(FORMAT)
+            player.send(role)
+        self.manager.current = "RolePage"
+        self.manager.transition.direction = "left"
+
 
 class JoinPage(MDScreen):
 
@@ -143,7 +167,9 @@ class JoinPage(MDScreen):
 
 
 class RolePage(MDScreen):
-    pass
+
+    def on_enter(self):
+        self.ids.role.text = self.role
 
 
 class WindowManager(ScreenManager):

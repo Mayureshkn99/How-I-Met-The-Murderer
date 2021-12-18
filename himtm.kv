@@ -88,50 +88,12 @@ WindowManager:
                     MDLabel:
                         text: "Neil"
                         halign: "center"
-                    MDLabel:
-                        text: "Neil1"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil2"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil3"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil4"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil5"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil6"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil7"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil8"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil9"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil0"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil"
-                        halign: "center"
-                    MDLabel:
-                        text: "Neil"
-                        halign: "center"
         MDFillRoundFlatButton:
             text: "Assign Roles"
             width: window.size[0]*0.8
             pos_hint: {'center_x': 0.5}
             on_release:
+#                root.assign_roles()
                 app.root.current = "RolePage"
                 root.manager.transition.direction = "left"
 
@@ -189,7 +151,7 @@ WindowManager:
             title:'How I Met The Murderer'
         MDLabel:
             id: role
-            text: "Police"
+            text: "Not Assigned"
             halign: "center"
         MDFillRoundFlatButton:
             text: "Exit"
