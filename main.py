@@ -71,12 +71,13 @@ class LobbyPage(MDScreen):
         broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         # Broadcast IP address and Username Continuously
+        message = (socket.gethostbyname(socket.getfqdn()) + ' ' + self.host_name).encode('utf-8')
         while True:
-            message = (socket.gethostbyname(socket.getfqdn()) + ' ' + self.host_name).encode('utf-8')
             broadcast_socket.sendto(message, ('<broadcast>', 8888))
             if STOP:
                 broadcast_socket.close()
                 print("Stopped Broadcast")
+                STOP = False
                 return
 
     def host(self):
@@ -94,26 +95,39 @@ class LobbyPage(MDScreen):
         print("Listening...")
         while True:
             conn, addr = server.accept()
-            if addr == socket.gethostbyname(socket.gethostname()):
-                return  # Stop listening if received own addr
+            if addr[0] == socket.gethostbyname(socket.gethostname()):
+                conn.close()
+                break  # Stop listening if received own addr
             conn.settimeout(None)
             thread = threading.Thread(target=self.handle_client, args=(conn, addr))
             thread.start()
             print("Active Connections: ", threading.activeCount() - 2)
+        server.close()
 
     def handle_client(self, conn, addr):
-        global PLAYERS
+        global PLAYERS, HEADER, FORMAT
         player = Player(conn, addr)
         print(addr, "connected")
+        label = False
         while True:
-            msg_length = conn.recv(HEADER).decode(FORMAT)
+            try:
+                msg_length = conn.recv(HEADER).decode(FORMAT)
+            except:
+                msg_length = 0
+                print("Connection Aborted 1")
             if msg_length:
                 msg_length = int(msg_length)
-                msg = conn.recv(msg_length).decode(FORMAT)
+                try:
+                    msg = conn.recv(msg_length).decode(FORMAT)
+                except:
+                    msg = DISCONNECT
+                    print("Connection Aborted 2")
                 if msg == DISCONNECT:
-                    PLAYERS.remove(next(x for x in PLAYERS if x.addr == addr))
-                    self.ids.players_connected.remove_widget(label)
-                    del self.ids[player.username]
+                    if label:
+                        PLAYERS.remove(next(x for x in PLAYERS if x.addr == addr))
+                        self.ids.players_connected.remove_widget(label)
+                        del self.ids[player.username]
+                    conn.close()
                     break
                 print("<", addr, ">", msg)
                 player.username = msg
@@ -121,10 +135,27 @@ class LobbyPage(MDScreen):
                 self.ids[player.username] = label
                 self.ids.players_connected.add_widget(label)
                 PLAYERS.append(player)
-        conn.close()
+
+    def disconnect(self):
+        global PLAYERS, STOP
+
+        # Disconnect clients
+        for player in PLAYERS:
+            player.conn.close()
+        PLAYERS = []
+
+        STOP = True  # Stops Broadcast
+
+        # Stops server listen
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        client.settimeout(None)
+        addr = socket.gethostbyname(socket.gethostname())
+        client.connect((addr, 9999))
+        client.close()
 
     def assign_roles(self):
-        global PLAYERS, ROLES
+        global PLAYERS, ROLES, STOP
         no_of_players = len(PLAYERS)
         if no_of_players < 3:
             toast("Cannot play with less than 3 Players")
@@ -136,13 +167,16 @@ class LobbyPage(MDScreen):
         for player, role in zip(PLAYERS, roles):
             role = role.encode(FORMAT)
             player.send(role)
+
+        self.disconnect()
+
         self.manager.current = "RolePage"
         self.manager.transition.direction = "left"
 
 
 class JoinPage(MDScreen):
 
-    def connect_host(self,name):
+    def connect_host(self, name):
         if self.ids.name.text == "":
             toast("Username cannot be blank")
             return
@@ -152,7 +186,6 @@ class JoinPage(MDScreen):
                 MDFlatButton(text="Yes", on_release=self.connect),
                 MDFlatButton(text="No", on_release=self.close_confirm)
             ]
-
         )
         self.dialog.open()
 
@@ -189,6 +222,7 @@ class WindowManager(ScreenManager):
                 self.transition.direction = "right"
                 return True  # do not exit the app
             elif self.current_screen.name == "LobbyPage":
+                # LobbyPage().disconnect()
                 self.current = "HostPage"
                 self.transition.direction = "right"
                 return True  # do not exit the app
