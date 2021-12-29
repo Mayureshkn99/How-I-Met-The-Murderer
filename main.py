@@ -113,15 +113,15 @@ class LobbyPage(MDScreen):
             try:
                 msg_length = conn.recv(HEADER).decode(FORMAT)
             except:
-                msg_length = 0
                 print("Connection Aborted 1")
+                break
             if msg_length:
                 msg_length = int(msg_length)
                 try:
                     msg = conn.recv(msg_length).decode(FORMAT)
                 except:
-                    msg = DISCONNECT
                     print("Connection Aborted 2")
+                    break
                 if msg == DISCONNECT:
                     if label:
                         PLAYERS.remove(next(x for x in PLAYERS if x.addr == addr))
@@ -142,6 +142,8 @@ class LobbyPage(MDScreen):
         # Disconnect clients
         for player in PLAYERS:
             player.conn.close()
+            self.ids.players_connected.remove_widget(player.username)
+            del self.ids[player.username]
         PLAYERS = []
 
         STOP = True  # Stops Broadcast
@@ -166,7 +168,7 @@ class LobbyPage(MDScreen):
         random.shuffle(PLAYERS)
         for player, role in zip(PLAYERS, roles):
             role = role.encode(FORMAT)
-            player.send(role)
+            player.conn.send(role)
 
         self.disconnect()
 
@@ -191,7 +193,7 @@ class JoinPage(MDScreen):
 
     def connect(self, _):
         self.dialog.dismiss()
-        self.manager.get_screen("RolePage").ids.role.text = "Waiting for host to assign role..."
+        self.role = "Waiting for host to assign role..."
         self.manager.current = "RolePage"
         self.manager.transition.direction = "left"
 
