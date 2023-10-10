@@ -85,17 +85,13 @@ WindowManager:
                     cols: 1
                     size_hint: 1, None
                     pos_hint: {'center_x': 0.5}
-                    MDLabel:
-                        text: "Neil"
-                        halign: "center"
         MDFillRoundFlatButton:
             text: "Assign Roles"
             width: window.size[0]*0.8
             pos_hint: {'center_x': 0.5}
             on_release:
-#                root.assign_roles()
-                app.root.current = "RolePage"
-                root.manager.transition.direction = "left"
+                root.assign_roles()
+
 
 <JoinPage>
     name: "JoinPage"
@@ -106,7 +102,7 @@ WindowManager:
         MDTextField:
             id: name
             mode: "rectangle"
-            text: ""
+            text: "Neil"
             size_hint_x:0.75
             pos_hint: {'center_x': 0.5}
             hint_text: 'Enter Username'
@@ -121,27 +117,12 @@ WindowManager:
                     rectangle: self.x, self.y, self.width, self.height
             ScrollView:
                 GridLayout:
-                    id: players_connected
+                    id: hosts
                     height: root.height
                     cols: 1
                     spacing: "1dp"
                     size_hint: 1, None
                     pos_hint: {'center_x': 0.5}
-                    MDRaisedButton:
-                        text: "Neil"
-                        width: window.size[0]*0.8
-                        on_release:
-                            root.connect_host("Neil")
-                    MDRaisedButton:
-                        text: "Shantanu"
-                        width: window.size[0]*0.8
-                        on_release:
-                            root.connect_host("Shantanu")
-                    MDRaisedButton:
-                        text: "Vedant"
-                        width: window.size[0]*0.8
-                        on_release:
-                            root.connect_host("Vedant")
 
 <RolePage>
     name: "RolePage"
