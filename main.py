@@ -12,6 +12,7 @@ from kivymd.toast import toast
 import socket
 import threading
 import random
+import time
 
 
 Window.size = (350, 650)
@@ -59,7 +60,7 @@ class LobbyPage(MDScreen):
     def on_enter(self):
         self.host_name = self.manager.get_screen("HostPage").ids.host_name.text
         self.ids.lobby_name.text = self.host_name + "'s Lobby"
-        # self.host()
+        self.host()
 
     def broadcast(self):
         global STOP
@@ -69,11 +70,14 @@ class LobbyPage(MDScreen):
         broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        broadcast_socket.settimeout(None)
+
 
         # Broadcast IP address and Username Continuously
         message = (socket.gethostbyname(socket.getfqdn()) + ' ' + self.host_name).encode('utf-8')
         while True:
             broadcast_socket.sendto(message, ('<broadcast>', 8888))
+            time.sleep(1)
             if STOP:
                 broadcast_socket.close()
                 print("Stopped Broadcast")
@@ -84,17 +88,22 @@ class LobbyPage(MDScreen):
         # Broadcast server IP
         threading.Thread(target=self.broadcast).start()
 
-        # Initializing server object with ip '' and port 9999
+        # Initializing server socket with ip '' and port 9999
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.settimeout(None)
         server.bind(('', 9999))
 
+        # Start listening to client connection requests
+        threading.Thread(target=self.listen, args=(server, )).start()
+
+    def listen(self, server):
         # Server listens for client connections
         server.listen()
         print("Listening...")
         while True:
             conn, addr = server.accept()
+            print("Accepted")
             if addr[0] == socket.gethostbyname(socket.gethostname()):
                 conn.close()
                 break  # Stop listening if received own addr
